@@ -111,6 +111,7 @@ public class ServerConfig {
     public boolean USE_NPCS_SCRIPTABLE;
 
     //Events/PQs Configuration
+    public boolean ALLOW_KERNING_PQ_SINGLE;
     public boolean USE_OLD_GMS_STYLED_PQ_NPCS;
     public boolean USE_ENABLE_SOLO_EXPEDITIONS;
     public boolean USE_ENABLE_DAILY_EXPEDITIONS;

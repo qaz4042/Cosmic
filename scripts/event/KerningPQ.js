@@ -24,6 +24,7 @@
  */
 
 var isPq = true;
+const allowSolo = Java.type('config.YamlConfig').config.server.ALLOW_KERNING_PQ_SINGLE;
 var minPlayers = 3, maxPlayers = 4;
 var minLevel = 21, maxLevel = 30;
 var entryMap = 103000800;
@@ -51,7 +52,7 @@ function setEventRequirements() {
 
     reqStr += "\r\n    Number of players: ";
     if (maxPlayers - minPlayers >= 1) {
-        reqStr += minPlayers + " ~ " + maxPlayers;
+        reqStr += (allowSolo ? "1 or " : "") + minPlayers + " ~ " + maxPlayers;
     } else {
         reqStr += minPlayers;
     }
@@ -105,7 +106,9 @@ function getEligibleParty(party) {      //selects, from the given party, the tea
         }
     }
 
-    if (!(hasLeader && eligible.length >= minPlayers && eligible.length <= maxPlayers)) {
+    var soloParty = allowSolo && party.size() == 1 && eligible.length == 1;
+    var regularParty = eligible.length >= minPlayers && eligible.length <= maxPlayers;
+    if (!hasLeader || (!soloParty && !regularParty)) {
         eligible = [];
     }
     return Java.to(eligible, Java.type('net.server.world.PartyCharacter[]'));
@@ -122,7 +125,11 @@ function setup(level, lobbyid) {
     return eim;
 }
 
-function afterSetup(eim) {}
+function afterSetup(eim) {
+    if (allowSolo && eim.getPlayerCount() == 1) {
+        eim.setProperty("solo", "true");
+    }
+}
 
 function respawnStages(eim) {
     eim.getMapInstance(103000800).instanceMapRespawn();

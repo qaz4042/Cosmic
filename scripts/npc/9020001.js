@@ -134,7 +134,7 @@ function action(mode, type, selection) {
                     cm.sendNext("Incredible! You cleared all the stages to get to this point. Here's a small prize for your job well done. Before you accept it, however, please make sure your use and etc. inventories have empty slots available.");
                 }
             } else if (curMap == 103000800) {   // stage 1
-                if (cm.isEventLeader()) {
+                if (cm.isEventLeader() && eim.getProperty("solo") == null) {
                     var numpasses = eim.getPlayerCount() - 1;     // minus leader
 
                     if (cm.hasItem(4001008, numpasses)) {
@@ -160,10 +160,16 @@ function action(mode, type, selection) {
                         var answer = stage1Answers[data - 1];
 
                         if (cm.itemQuantity(4001007) == answer) {
-                            cm.sendNext("That's the right answer! For that you have just received a #bpass#k. Please hand it to the leader of the party.");
                             cm.gainItem(4001007, -answer);
-                            cm.gainItem(4001008, 1);
-                            eim.gridInsert(cm.getPlayer(), 0);
+                            if (eim.getProperty("solo") != null) {
+                                clearStage(stage, eim, curMap);
+                                eim.gridClear();
+                                cm.sendNext("Correct! The portal to the next stage is open.");
+                            } else {
+                                cm.sendNext("That's the right answer! For that you have just received a #bpass#k. Please hand it to the leader of the party.");
+                                cm.gainItem(4001008, 1);
+                                eim.gridInsert(cm.getPlayer(), 0);
+                            }
                         } else {
                             var question = stage1Questions[eim.gridCheck(cm.getPlayer()) - 1];
                             cm.sendNext("I'm sorry, but that is not the right answer!\r\n" + question);
@@ -171,6 +177,10 @@ function action(mode, type, selection) {
                     }
                 }
 
+                cm.dispose();
+            } else if (stage >= 2 && stage <= 4 && eim.getProperty("solo") != null && cm.isEventLeader()) {
+                clearStage(stage, eim, curMap);
+                cm.sendNext("This stage needs three players. The portal is open for your solo run.");
                 cm.dispose();
             } else if (curMap == 103000801) {   // stage 2
                 var stgProperty = "stg2Property";
