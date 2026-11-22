@@ -341,6 +341,7 @@ public class CommandsExecutor {
         levelCommandsCursor = new Pair<>(new ArrayList<String>(), new ArrayList<String>());
 
         addCommand(new String[]{"help", "commands"}, HelpCommand.class);
+        addCommand("warp", WarpCommand.class);
         addCommand("droplimit", DropLimitCommand.class);
         addCommand("time", TimeCommand.class);
         addCommand("credits", StaffCommand.class);
@@ -401,7 +402,6 @@ public class CommandsExecutor {
         addCommand("cleardrops", 2, ClearDropsCommand.class);
         addCommand("clearslot", 2, ClearSlotCommand.class);
         addCommand("clearsavelocs", 2, ClearSavedLocationsCommand.class);
-        addCommand("warp", 2, WarpCommand.class);
         addCommand(new String[]{"warphere", "summon"}, 2, SummonCommand.class);
         addCommand(new String[]{"warpto", "reach", "follow"}, 2, ReachCommand.class);
         addCommand("gmshop", 2, GmShopCommand.class);

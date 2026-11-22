@@ -134,7 +134,10 @@ public class MapFactory {
         MapleMap map;
 
         String mapName = getMapName(mapid);
-        Data mapData = mapSource.getData(mapName);    // source.getData issue with giving nulls in rare ocasions found thanks to MedicOP
+        Data mapData = mapSource.getData(mapName);
+        if (mapData == null) {
+            return null;
+        }
         Data infoData = mapData.getChildByPath("info");
 
         String link = DataTool.getString(infoData.getChildByPath("link"), "");

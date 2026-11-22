@@ -46,7 +46,6 @@ import client.processor.stat.AssignSPProcessor;
 import config.YamlConfig;
 import constants.game.GameConstants;
 import constants.id.ItemId;
-import constants.id.MapId;
 import constants.inventory.ItemConstants;
 import net.AbstractPacketHandler;
 import net.packet.InPacket;
@@ -59,7 +58,6 @@ import server.Shop;
 import server.ShopFactory;
 import server.TimerManager;
 import server.maps.AbstractMapObject;
-import server.maps.FieldLimit;
 import server.maps.Kite;
 import server.maps.MapleMap;
 import server.maps.MapleTVEffect;
@@ -128,13 +126,16 @@ public final class UseCashItemHandler extends AbstractPacketHandler {
         if (itemType == 504) { // vip teleport rock
             String error1 = "Either the player could not be found or you were trying to teleport to an illegal location.";
             boolean vip = p.readByte() == 1 && itemId / 1000 >= 5041;
-            remove(c, position, itemId);
+            boolean consumable = itemId != ItemId.VIP_TELEPORT_ROCK || toUse.getExpiration() != -1;
+            if (consumable) {
+                remove(c, position, itemId);
+            }
             boolean success = false;
             if (!vip) {
                 int mapId = p.readInt();
                 if (itemId / 1000 >= 5041 || mapId / 100000000 == player.getMapId() / 100000000) { //check vip or same continent
                     MapleMap targetMap = c.getChannelServer().getMapFactory().getMap(mapId);
-                    if (!FieldLimit.CANNOTVIPROCK.check(targetMap.getFieldLimit()) && (targetMap.getForcedReturnId() == MapId.NONE || MapId.isMapleIsland(mapId))) {
+                    if (targetMap != null && targetMap.allowsTeleportRock()) {
                         player.forceChangeMap(targetMap, targetMap.getRandomPlayerSpawnpoint());
                         success = true;
                     } else {
@@ -149,7 +150,7 @@ public final class UseCashItemHandler extends AbstractPacketHandler {
 
                 if (victim != null) {
                     MapleMap targetMap = victim.getMap();
-                    if (!FieldLimit.CANNOTVIPROCK.check(targetMap.getFieldLimit()) && (targetMap.getForcedReturnId() == MapId.NONE || MapId.isMapleIsland(targetMap.getId()))) {
+                    if (targetMap.allowsTeleportRock()) {
                         if (!victim.isGM() || victim.gmLevel() <= player.gmLevel()) {   // thanks Yoboes for noticing non-GM's being unreachable through rocks
                             player.forceChangeMap(targetMap, targetMap.findClosestPlayerSpawnpoint(victim.getPosition()));
                             success = true;
@@ -165,7 +166,9 @@ public final class UseCashItemHandler extends AbstractPacketHandler {
             }
 
             if (!success) {
-                InventoryManipulator.addById(c, itemId, (short) 1);
+                if (consumable) {
+                    InventoryManipulator.addById(c, itemId, (short) 1);
+                }
                 c.sendPacket(PacketCreator.enableActions());
             }
         } else if (itemType == 505) { // AP/SP reset

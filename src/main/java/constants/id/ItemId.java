@@ -3,6 +3,7 @@ package constants.id;
 import java.util.stream.IntStream;
 
 public class ItemId {
+    public static final int VIP_TELEPORT_ROCK = 5041000;
     // Misc
     public static final int PENDANT_OF_THE_SPIRIT = 1122017;
     public static final int HEART_SHAPED_CHOCOLATE = 5110000;

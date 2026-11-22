@@ -26,47 +26,63 @@ package client.command.commands.gm2;
 import client.Character;
 import client.Client;
 import client.command.Command;
+import constants.id.MapId;
 import server.maps.FieldLimit;
 import server.maps.MapleMap;
 import server.maps.MiniDungeonInfo;
+import server.maps.Portal;
 
 public class WarpCommand extends Command {
     {
-        setDescription("Warp to a map.");
+        setDescription("Warp directly to a public map by ID.");
     }
 
     @Override
     public void execute(Client c, String[] params) {
         Character player = c.getPlayer();
         if (params.length < 1) {
-            player.yellowMessage("Syntax: !warp <mapid>");
+            player.yellowMessage("Syntax: @warp <mapid>");
             return;
         }
 
-        try {
-            MapleMap target = c.getChannelServer().getMapFactory().getMap(Integer.parseInt(params[0]));
-            if (target == null) {
-                player.yellowMessage("Map ID " + params[0] + " is invalid.");
-                return;
-            }
-
-            if (!player.isAlive()) {
-                player.dropMessage(1, "This command cannot be used when you're dead.");
-                return;
-            }
-
-            if (!player.isGM()) {
-                if (player.getEventInstance() != null || MiniDungeonInfo.isDungeonMap(player.getMapId()) || FieldLimit.CANNOTMIGRATE.check(player.getMap().getFieldLimit())) {
-                    player.dropMessage(1, "This command cannot be used in this map.");
-                    return;
-                }
-            }
-
-            // expedition issue with this command detected thanks to Masterrulax
-            player.saveLocationOnWarp();
-            player.changeMap(target, target.getRandomPlayerSpawnpoint());
-        } catch (Exception ex) {
-            player.yellowMessage("Map ID " + params[0] + " is invalid.");
+        if (!player.isAlive()) {
+            player.dropMessage(1, "This command cannot be used when you're dead.");
+            return;
         }
+
+        if (!player.isGM() && (player.getEventInstance() != null
+                || MiniDungeonInfo.isDungeonMap(player.getMapId())
+                || FieldLimit.CANNOTMIGRATE.check(player.getMap().getFieldLimit()))) {
+            player.dropMessage(1, "This command cannot be used in this map.");
+            return;
+        }
+
+        MapleMap target;
+        try {
+            target = c.getChannelServer().getMapFactory().getMap(Integer.parseInt(params[0]));
+        } catch (NumberFormatException ex) {
+            target = null;
+        }
+
+        if (target == null) {
+            player.yellowMessage("Map ID " + params[0] + " is invalid.");
+            return;
+        }
+
+        int mapId = target.getId();
+        if (!player.isGM() && (mapId == MapId.GM_MAP || mapId == MapId.JAIL
+                || !target.allowsTeleportRock())) {
+            player.yellowMessage("This map is unavailable for direct travel.");
+            return;
+        }
+
+        Portal spawn = target.getRandomPlayerSpawnpoint();
+        if (spawn == null) {
+            player.yellowMessage("This map has no available spawn point.");
+            return;
+        }
+
+        player.saveLocationOnWarp();
+        player.changeMap(target, spawn);
     }
 }

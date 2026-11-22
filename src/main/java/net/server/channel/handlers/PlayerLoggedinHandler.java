@@ -34,10 +34,13 @@ import client.SkillFactory;
 import client.inventory.Equip;
 import client.inventory.Inventory;
 import client.inventory.InventoryType;
+import client.inventory.manipulator.InventoryManipulator;
 import client.inventory.Item;
 import client.inventory.Pet;
 import client.keybind.KeyBinding;
 import config.YamlConfig;
+import constants.inventory.ItemConstants;
+import constants.id.ItemId;
 import constants.game.GameConstants;
 import net.AbstractPacketHandler;
 import net.packet.InPacket;
@@ -241,6 +244,12 @@ public final class PlayerLoggedinHandler extends AbstractPacketHandler {
             }
 
             c.sendPacket(PacketCreator.getCharInfo(player));
+            int vipRock = ItemId.VIP_TELEPORT_ROCK;
+            if (player.getInventory(InventoryType.CASH).listById(vipRock).stream()
+                    .noneMatch(item -> item.getExpiration() == -1)
+                    && InventoryManipulator.checkSpace(c, vipRock, 1, "")) {
+                InventoryManipulator.addById(c, vipRock, (short) 1, null, -1, ItemConstants.UNTRADEABLE, -1);
+            }
             if (!player.isHidden()) {
                 if (player.isGM() && YamlConfig.config.server.USE_AUTOHIDE_GM) {
                     player.toggleHide(true);

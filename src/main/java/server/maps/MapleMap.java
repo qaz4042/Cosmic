@@ -302,6 +302,11 @@ public class MapleMap {
         return forcedReturnMap;
     }
 
+    public boolean allowsTeleportRock() {
+        return !FieldLimit.CANNOTVIPROCK.check(getFieldLimit())
+                && (getForcedReturnId() == MapId.NONE || MapId.isMapleIsland(getId()));
+    }
+
     public void setForcedReturnMap(int map) {
         this.forcedReturnMap = map;
     }
@@ -2538,8 +2543,7 @@ public class MapleMap {
                 spawnPoints.add(portal);
             }
         }
-        Portal portal = spawnPoints.get(new Random().nextInt(spawnPoints.size()));
-        return portal != null ? portal : getPortal(0);
+        return spawnPoints.isEmpty() ? getPortal(0) : spawnPoints.get(new Random().nextInt(spawnPoints.size()));
     }
 
     public Portal findClosestTeleportPortal(Point from) {
