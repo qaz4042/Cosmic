@@ -33,6 +33,7 @@ public class CharsetConstants {
 
     private enum Language {
         LANGUAGE_US("US-ASCII"),
+        LANGUAGE_UTF8("UTF-8"),
         LANGUAGE_PT_BR("ISO-8859-1"),
         LANGUAGE_THAI("TIS620"),
         LANGUAGE_KOREAN("MS949");

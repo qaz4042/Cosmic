@@ -40,7 +40,7 @@ public class GuildPackets {
             p.writeInt(mgc.getId());
         }
         for (GuildCharacter mgc : members) {
-            p.writeFixedString(StringUtil.getRightPaddedStr(mgc.getName(), '\0', 13));
+            p.writeFixedString(StringUtil.getRightBytePaddedStr(mgc.getName(), 13));
             p.writeInt(mgc.getJobId());
             p.writeInt(mgc.getLevel());
             p.writeInt(mgc.getGuildRank());
@@ -126,7 +126,7 @@ public class GuildPackets {
         p.writeByte(0x27);
         p.writeInt(mgc.getGuildId());
         p.writeInt(mgc.getId());
-        p.writeFixedString(StringUtil.getRightPaddedStr(mgc.getName(), '\0', 13));
+        p.writeFixedString(StringUtil.getRightBytePaddedStr(mgc.getName(), 13));
         p.writeInt(mgc.getJobId());
         p.writeInt(mgc.getLevel());
         p.writeInt(mgc.getGuildRank()); //should be always 5 but whatevs
@@ -347,7 +347,7 @@ public class GuildPackets {
             p.writeInt(mgc.getId());
         }
         for (GuildCharacter mgc : members) {
-            p.writeFixedString(StringUtil.getRightPaddedStr(mgc.getName(), '\0', 13));
+            p.writeFixedString(StringUtil.getRightBytePaddedStr(mgc.getName(), 13));
             p.writeInt(mgc.getJobId());
             p.writeInt(mgc.getLevel());
             p.writeInt(mgc.getGuildRank());

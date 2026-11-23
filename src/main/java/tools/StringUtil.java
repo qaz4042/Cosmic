@@ -22,6 +22,22 @@
 package tools;
 
 public class StringUtil {
+    /** Pad protocol fields by encoded bytes, without cutting a multibyte character. */
+    public static String getRightBytePaddedStr(String in, int length) {
+        StringBuilder result = new StringBuilder();
+        int used = 0;
+        for (int offset = 0; offset < in.length();) {
+            int cp = in.codePointAt(offset);
+            String ch = new String(java.lang.Character.toChars(cp));
+            int size = ch.getBytes(constants.string.CharsetConstants.CHARSET).length;
+            if (used + size > length - 1) break;
+            result.append(ch);
+            used += size;
+            offset += java.lang.Character.charCount(cp);
+        }
+        return result.append("\0".repeat(length - used)).toString();
+    }
+
     /**
      * Gets a string padded from the left to <code>length</code> by
      * <code>padchar</code>.
