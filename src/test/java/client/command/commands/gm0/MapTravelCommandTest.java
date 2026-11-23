@@ -7,6 +7,15 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class MapTravelCommandTest {
+    @Test void cooldownIsIndependentPerSessionAndExpires() {
+        var command = new MapTravelCommand();
+        var first = mock(client.Character.class);
+        var second = mock(client.Character.class);
+        assertTrue(command.acceptRequest(first, 0));
+        assertFalse(command.acceptRequest(first, 2_999_999_999L));
+        assertTrue(command.acceptRequest(second, 1));
+        assertTrue(command.acceptRequest(first, 3_000_000_000L));
+    }
     @Test void rejectsSpecialAndRestrictedMapsEvenForGmTravel() {
         assertFalse(MapTravelCommand.regular(null));
         MapleMap map = mock(MapleMap.class);

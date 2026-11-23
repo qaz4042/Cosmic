@@ -162,7 +162,7 @@ public class Shop {
     }
 
     private static boolean canSell(Item item, short quantity) {
-        if (item == null) { //Basic check
+        if (item == null || (item.getFlag() & (ItemConstants.SELL_LOCK | ItemConstants.LOCK)) != 0) {
             return false;
         }
 
@@ -198,19 +198,29 @@ public class Shop {
             return;
         }
 
-        Item item = c.getPlayer().getInventory(type).getItem(slot);
-        if (canSell(item, quantity)) {
-            quantity = getSellingQuantity(item, quantity);
-            InventoryManipulator.removeFromSlot(c, type, (byte) slot, quantity, false);
-
-            ItemInformationProvider ii = ItemInformationProvider.getInstance();
-            int recvMesos = ii.getPrice(item.getItemId(), quantity);
-            if (recvMesos > 0) {
-                c.getPlayer().gainMeso(recvMesos, false);
-            }
-            c.sendPacket(PacketCreator.shopTransaction((byte) 0x8));
-        } else {
+        if (type == null || type.getType() < 1 || type.getType() > 4 || slot <= 0) {
             c.sendPacket(PacketCreator.shopTransaction((byte) 0x5));
+            return;
+        }
+        var inv = c.getPlayer().getInventory(type);
+        inv.lockInventory();
+        try {
+            Item item = c.getPlayer().getInventory(type).getItem(slot);
+            if (canSell(item, quantity)) {
+                quantity = getSellingQuantity(item, quantity);
+                InventoryManipulator.removeFromSlot(c, type, slot, quantity, false);
+
+                ItemInformationProvider ii = ItemInformationProvider.getInstance();
+                int recvMesos = ii.getPrice(item.getItemId(), quantity);
+                if (recvMesos > 0) {
+                    c.getPlayer().gainMeso(recvMesos, false);
+                }
+                c.sendPacket(PacketCreator.shopTransaction((byte) 0x8));
+            } else {
+                c.sendPacket(PacketCreator.shopTransaction((byte) 0x5));
+            }
+        } finally {
+            inv.unlockInventory();
         }
     }
 

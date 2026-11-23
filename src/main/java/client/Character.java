@@ -1138,6 +1138,86 @@ public class Character extends AbstractCharacterObject {
         }, 777);
     }
 
+    /** NPC-confirmed respec; deliberately does not call changeJob (advancement rewards). */
+    public synchronized String switchAdventurerBranch(int target, int expectedJob, boolean swapStats, int expectedStr, int expectedDex) {
+        if (job.getId() != expectedJob) return "职业已变化，请重新打开切换窗口。";
+        String rejection = server.AdventurerJobSwitch.rejection(this, target);
+        if (rejection != null) return rejection;
+        if (swapStats && !server.AdventurerJobSwitch.canSwapStats(expectedJob, target))
+            return "仅拳手与火枪手互换时可选择力量／敏捷互换。";
+        if (swapStats && (getStr() != expectedStr || getDex() != expectedDex))
+            return "属性已变化，请重新打开切换窗口确认。";
+        Map<Integer, Integer> levels = new LinkedHashMap<>();
+        skills.forEach((skill, entry) -> levels.put(skill.getId(), (int) entry.skillevel));
+        final int refunded;
+        try {
+            refunded = server.AdventurerJobSwitch.refundedSp(job.getId(), getRemainingSp(), levels);
+        } catch (IllegalArgumentException e) {
+            return e.getMessage();
+        }
+
+        cancelAllBuffs(false);
+        Job previousJob = job;
+        int previousSp = getRemainingSp();
+        int previousStr = getStr(), previousDex = getDex();
+        Map<Skill, SkillEntry> previousSkills = new LinkedHashMap<>(skills);
+        Map<Integer, KeyBinding> previousKeys = new LinkedHashMap<>(keymap);
+        SkillMacro[] previousMacros = skillMacros.clone();
+        // Zero entries are saved together with the job and SP by the existing DB transaction.
+        skills.replaceAll((skill, entry) -> server.AdventurerJobSwitch.branchSkill(skill.getId())
+                ? new SkillEntry((byte) 0, 0, -1) : entry);
+        keymap.entrySet().removeIf(entry -> entry.getValue().getType() == 1
+                && server.AdventurerJobSwitch.branchSkill(entry.getValue().getAction()));
+        for (int i = 0; i < skillMacros.length; i++) {
+            SkillMacro macro = skillMacros[i];
+            if (macro == null || (server.AdventurerJobSwitch.branchSkill(macro.getSkill1())
+                    || server.AdventurerJobSwitch.branchSkill(macro.getSkill2())
+                    || server.AdventurerJobSwitch.branchSkill(macro.getSkill3())))
+                skillMacros[i] = new SkillMacro(0, 0, 0, "", 0, i);
+        }
+        updatePartySearchAvailability(false);
+        job = Job.getById(target);
+        remainingSp[0] = refunded;
+        if (swapStats) {
+            statWlock.lock();
+            try { str = previousDex; dex = previousStr; }
+            finally { statWlock.unlock(); }
+        }
+        if (!saveCharToDBChecked(true)) {
+            job = previousJob;
+            remainingSp[0] = previousSp;
+            statWlock.lock();
+            try { str = previousStr; dex = previousDex; }
+            finally { statWlock.unlock(); }
+            skills.clear();
+            skills.putAll(previousSkills);
+            keymap.clear();
+            keymap.putAll(previousKeys);
+            System.arraycopy(previousMacros, 0, skillMacros, 0, skillMacros.length);
+            updatePartySearchAvailability(true);
+            Server.getInstance().updateCharacterEntry(this);
+            return "保存失败，职业与技能点已还原，请稍后重试（增益状态已解除）。";
+        }
+        updatePartySearchAvailability(true);
+        previousSkills.forEach((skill, entry) -> {
+            if (server.AdventurerJobSwitch.branchSkill(skill.getId()))
+                sendPacket(PacketCreator.updateSkill(skill.getId(), 0, 0, -1));
+        });
+        sendKeymap();
+        sendMacros();
+        equipChanged();
+        sendPacket(PacketCreator.updatePlayerStats(new ArrayList<>(List.of(
+                new Pair<>(Stat.JOB, target), new Pair<>(Stat.AVAILABLESP, refunded),
+                new Pair<>(Stat.STR, getStr()), new Pair<>(Stat.DEX, getDex()))), true, this));
+        setMPC(new PartyCharacter(this));
+        silentPartyUpdate();
+        guildUpdate();
+        broadcastChangeJob();
+        log.info("Adventurer branch switch chr {}: {} -> {}, remaining SP {} -> {}, swap STR/DEX {}",
+                id, previousJob.getId(), target, previousSp, refunded, swapStats);
+        return "切换成功，二转技能点已退回。请重新分配技能并检查快捷键；建议重新登录后再开始练级。";
+    }
+
     public synchronized void changeJob(Job newJob) {
         if (newJob == null) {
             return;//the fuck you doing idiot!
@@ -8242,8 +8322,12 @@ public class Character extends AbstractCharacterObject {
 
     //ItemFactory saveItems and monsterbook.saveCards are the most time consuming here.
     public synchronized void saveCharToDB(boolean notAutosave) {
+        saveCharToDBChecked(notAutosave);
+    }
+
+    private boolean saveCharToDBChecked(boolean notAutosave) {
         if (!loggedIn) {
-            return;
+            return false;
         }
 
         Calendar c = Calendar.getInstance();
@@ -8251,6 +8335,7 @@ public class Character extends AbstractCharacterObject {
 
         Server.getInstance().updateCharacterEntry(this);
 
+        boolean committed = false;
         try (Connection con = DatabaseConnection.getConnection()) {
             con.setAutoCommit(false);
             con.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
@@ -8632,6 +8717,7 @@ public class Character extends AbstractCharacterObject {
                 }
 
                 con.commit();
+                committed = true;
             } catch (Exception e) {
                 con.rollback();
                 throw e;
@@ -8641,7 +8727,9 @@ public class Character extends AbstractCharacterObject {
             }
         } catch (Exception e) {
             log.error("Error saving chr {}, level: {}, job: {}", name, level, job.getId(), e);
+            return committed;
         }
+        return true;
     }
 
     public void sendPolice(int greason, String reason, int duration) {

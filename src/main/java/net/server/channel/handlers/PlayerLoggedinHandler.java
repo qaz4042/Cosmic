@@ -22,6 +22,7 @@
 package net.server.channel.handlers;
 
 import client.BuddyList;
+import server.LoginPets;
 import client.BuddylistEntry;
 import client.Character;
 import client.CharacterNameAndId;
@@ -243,7 +244,18 @@ public final class PlayerLoggedinHandler extends AbstractPacketHandler {
                 player.silentApplyDiseases(diseases);
             }
 
+            if (newcomer) {
+                LoginPets.prepare(player, System.currentTimeMillis());
+            }
             c.sendPacket(PacketCreator.getCharInfo(player));
+            // Grant every character a permanent, untradeable traveling store card.
+            // Retry on the next login if the cash inventory is full; never duplicate it.
+            int travelingStore = 5450000;
+            if (player.getInventory(InventoryType.CASH).listById(travelingStore).stream()
+                    .noneMatch(item -> item.getExpiration() == -1 && item.getQuantity() > 0)
+                    && InventoryManipulator.checkSpace(c, travelingStore, 1, "")) {
+                InventoryManipulator.addById(c, travelingStore, (short) 1, null, -1, ItemConstants.UNTRADEABLE, -1);
+            }
             int vipRock = ItemId.VIP_TELEPORT_ROCK;
             if (player.getInventory(InventoryType.CASH).listById(vipRock).stream()
                     .noneMatch(item -> item.getExpiration() == -1)

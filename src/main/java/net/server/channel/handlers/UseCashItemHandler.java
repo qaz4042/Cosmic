@@ -527,12 +527,13 @@ public final class UseCashItemHandler extends AbstractPacketHandler {
                     c.sendPacket(PacketCreator.sendMapleLifeError(-1 * createStatus));
                 }
             }
-        } else if (itemType == 545) { // MiuMiu's travel store
+        } else if (itemId == 5450000) { // Reusable Miu Miu traveling store card
             if (player.getShop() == null) {
                 Shop shop = ShopFactory.getInstance().getShop(1338);
                 if (shop != null) {
                     shop.sendShop(c);
-                    remove(c, position, itemId);
+                } else {
+                    c.sendPacket(PacketCreator.enableActions());
                 }
             } else {
                 c.sendPacket(PacketCreator.enableActions());

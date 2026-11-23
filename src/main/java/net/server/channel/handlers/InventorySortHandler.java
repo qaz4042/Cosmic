@@ -33,6 +33,7 @@ import net.AbstractPacketHandler;
 import net.packet.InPacket;
 import net.server.Server;
 import server.ItemInformationProvider;
+import server.InventoryItemOrder;
 import tools.PacketCreator;
 
 import java.util.ArrayList;
@@ -319,14 +320,14 @@ public final class InventorySortHandler extends AbstractPacketHandler {
                 }
             }
 
+            ItemInformationProvider items = ItemInformationProvider.getInstance();
+            itemarray.sort(InventoryItemOrder.comparator(items::getEquipLevelReq, items::getName));
+
             for (Item item : itemarray) {
                 inventory.removeSlot(item.getPosition());
                 mods.add(new ModifyInventory(3, item));
             }
 
-            int invTypeCriteria = (InventoryType.getByType(invType) == InventoryType.EQUIP) ? 3 : 1;
-            int sortCriteria = (YamlConfig.config.server.USE_ITEM_SORT_BY_NAME == true) ? 2 : 0;
-            PairedQuicksort pq = new PairedQuicksort(itemarray, sortCriteria, invTypeCriteria);
 
             for (Item item : itemarray) {
                 inventory.addItem(item);

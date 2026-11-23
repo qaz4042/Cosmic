@@ -352,7 +352,9 @@ public class CommandsExecutor {
         addCommand("equiplv", EquipLvCommand.class);
         addCommand("showrates", ShowRatesCommand.class);
         addCommand("rates", RatesCommand.class);
+        addCommand("jobswitch", client.command.commands.gm0.JobSwitchCommand.class);
         addCommand("maptravel", client.command.commands.gm0.MapTravelCommand.class);
+        addCommand("flyportal", client.command.commands.gm0.FlyPortalCommand.class);
         addCommand("online", OnlineCommand.class);
         addCommand("gm", GmCommand.class);
         addCommand("reportbug", ReportBugCommand.class);

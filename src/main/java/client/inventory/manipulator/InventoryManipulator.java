@@ -480,7 +480,8 @@ public class InventoryManipulator {
     }
 
     private static boolean isSameOwner(Item source, Item target) {
-        return source.getOwner().equals(target.getOwner());
+        return source.getOwner().equals(target.getOwner())
+                && (source.getFlag() & ItemConstants.SELL_LOCK) == (target.getFlag() & ItemConstants.SELL_LOCK);
     }
 
     public static void move(Client c, InventoryType type, short src, short dst) {

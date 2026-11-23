@@ -238,7 +238,8 @@ public class Inventory implements Iterable<Item> {
     }
 
     private static boolean isSameOwner(Item source, Item target) {
-        return source.getOwner().equals(target.getOwner());
+        return source.getOwner().equals(target.getOwner())
+                && (source.getFlag() & ItemConstants.SELL_LOCK) == (target.getFlag() & ItemConstants.SELL_LOCK);
     }
 
     public void move(short sSlot, short dSlot, short slotMax) {

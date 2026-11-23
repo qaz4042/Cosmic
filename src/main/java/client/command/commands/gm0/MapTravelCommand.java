@@ -73,7 +73,7 @@ public class MapTravelCommand extends Command {
         if (!player.isAlive() || player.isChangingMaps() || player.getTrade() != null
                 || player.getShop() != null || player.getPlayerShop() != null
                 || player.getMiniGame() != null || player.getHiredMerchant() != null
-                || player.getCashShop().isOpened()
+                || player.getCashShop().isOpened() || c.getCM() != null
                 || player.getEventInstance() != null || !regular(player.getMap())) {
             player.yellowMessage("当前状态或地图不能使用世界地图传送。");
             return;

@@ -485,6 +485,11 @@ public class ItemInformationProvider {
         return getItemPriceData(itemId).getRight();
     }
 
+    public boolean isNpcSaleBlocked(int itemId) {
+        Data item = getItemData(itemId);
+        return item == null || DataTool.getInt("info/notSale", item, 0) != 0;
+    }
+
     public int getPrice(int itemId, int quantity) {
         int retPrice = getWholePrice(itemId);
         if (retPrice == -1) {

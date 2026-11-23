@@ -38,7 +38,29 @@ public final class NPCShopHandler extends AbstractPacketHandler {
     @Override
     public void handlePacket(InPacket p, Client c) {
         byte bmode = p.readByte();
+        if (bmode == 5) { // OpenStory: persistent sell protection, usable outside shops.
+            server.ShopInventoryActions.setSellLock(c, p.readByte(), p.readShort(), p.readInt(), p.readByte() != 0);
+            return;
+        }
+        if (c.getPlayer().getShop() == null) {
+            c.sendPacket(tools.PacketCreator.enableActions());
+            return;
+        }
         switch (bmode) {
+        case 4: { // OpenStory: sell only the inventory snapshot confirmed by the player.
+            int npcId = p.readInt();
+            int count = p.readShort();
+            if (count < 0 || count > 1024) {
+                c.sendPacket(tools.PacketCreator.enableActions());
+                return;
+            }
+            java.util.List<server.ShopInventoryActions.Sale> sales = new java.util.ArrayList<>();
+            for (int i = 0; i < count; i++) {
+                sales.add(new server.ShopInventoryActions.Sale(p.readByte(), p.readShort(), p.readInt(), p.readShort()));
+            }
+            server.ShopInventoryActions.sellAll(c, npcId, sales);
+            break;
+        }
         case 0: { // mode 0 = buy :)
             short slot = p.readShort();// slot
             int itemId = p.readInt();
