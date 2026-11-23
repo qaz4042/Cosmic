@@ -8,6 +8,8 @@
     <include file="changelog-tables.xml" relativeToChangelogFile="true"/>
     <include file="changelog-data.xml" relativeToChangelogFile="true"/>
 
+    <include file="changes/20261123-starter-benefits.sql" relativeToChangelogFile="true"/>
+
     <!-- If you have any additional changesets you would like to run at the end, create an "extensions" directory and put them in there. -->
     <!-- All changesets will run in alphanumeric order based on their filename. Read Liquibase documentation on "includeAll" for more info. -->
     <includeAll path="extensions" relativeToChangelogFile="true" errorIfMissingOrEmpty="false"/>
