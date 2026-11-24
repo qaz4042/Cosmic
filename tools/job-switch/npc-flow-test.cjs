@@ -51,11 +51,11 @@ for (const group of groups) for (const job of group) {
         }
     }
 }
-for (const job of [0,100,111,211,900,1110,2100]) {
+for (const job of [0,100,113,213,900,1110,2100]) {
     const d = dialog(job); assert.equal(d.calls.at(-1), 'dispose');
     assert.equal(d.calls.includes('menu'), false);
 }
-for (const level of [29,70]) {
+for (const level of [29]) {
     const d = dialog(220, level); assert.equal(d.calls.at(-1), 'dispose');
 }
 for (const step of [0,1,2]) {

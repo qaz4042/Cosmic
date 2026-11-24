@@ -176,6 +176,7 @@ public final class PlayerLoggedinHandler extends AbstractPacketHandler {
                 }
             }
             c.setPlayer(player);
+            player.markJobSwitchActivity();
             c.setAccID(player.getAccountID());
 
             boolean allowLogin = true;

@@ -59,12 +59,12 @@ public final class ShopInventoryActions {
             inv.lockInventory();
             try {
                 Item item = inv.getItem(sale.slot());
-                // Never sell new/different stacks, protected items, cash items or zero-price items.
+                // Never sell new/different stacks, protected items, cash items or items without a sale price.
                 if (item == null || item.getItemId() != sale.itemId() || item.getQuantity() != sale.quantity()
                         || (item.getFlag() & (ItemConstants.SELL_LOCK | ItemConstants.LOCK)) != 0
                         || ii.isCash(item.getItemId()) || ii.isNpcSaleBlocked(item.getItemId())) continue;
                 int price = ii.getPrice(item.getItemId(), item.getQuantity());
-                if (price <= 0 || (long) c.getPlayer().getMeso() + price > Integer.MAX_VALUE) continue;
+                if (price < 0 || (long) c.getPlayer().getMeso() + price > Integer.MAX_VALUE) continue;
                 shop.sell(c, type, sale.slot(), sale.quantity());
                 sold++;
             } finally {

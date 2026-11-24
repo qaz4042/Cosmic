@@ -26,8 +26,7 @@ class AdventurerJobSwitchTest {
                 () -> AdventurerJobSwitch.refundedSp(110, 0, Map.of(1200000, 20)));
         assertThrows(IllegalArgumentException.class,
                 () -> AdventurerJobSwitch.refundedSp(110, 0, Map.of(1111002, 1)));
-        assertThrows(IllegalArgumentException.class,
-                () -> AdventurerJobSwitch.refundedSp(112, 0, Map.of()));
+        assertEquals(0, AdventurerJobSwitch.refundedSp(112, 0, Map.of()));
         assertThrows(IllegalArgumentException.class,
                 () -> AdventurerJobSwitch.refundedSp(110, -1, Map.of()));
         assertThrows(IllegalArgumentException.class,
@@ -48,7 +47,7 @@ class AdventurerJobSwitchTest {
                         AdventurerJobSwitch.canSwapStats(source, target));
             }
         }
-        for (int invalid : new int[]{0,100,200,500,111,211,321,421,521,900,1110,2100,2200}) {
+        for (int invalid : new int[]{0,100,200,500,113,213,323,423,523,900,1110,2100,2200}) {
             assertFalse(AdventurerJobSwitch.branch(invalid));
             assertFalse(AdventurerJobSwitch.sameFamily(invalid, 110));
         }
@@ -89,13 +88,49 @@ class AdventurerJobSwitchTest {
         verify(p, never()).changeJob(any(Job.class));
     }
 
+    @Test void combatAndRestrictedMapsBlockSwitchAtFinalConfirmation() {
+        Character p = eligible();
+        when(p.getMap().isTown()).thenReturn(false);
+        assertEquals(0, AdventurerJobSwitch.status(p));
+        when(p.getJobSwitchQuietSeconds()).thenReturn(18);
+        assertEquals(1, AdventurerJobSwitch.status(p));
+        assertTrue(AdventurerJobSwitch.rejection(p, 120).contains("18 秒"));
+        doCallRealMethod().when(p).setJob(any(Job.class));
+        doCallRealMethod().when(p).switchAdventurerBranch(anyInt(), anyInt(), anyBoolean(), anyInt(), anyInt());
+        p.setJob(Job.FIGHTER);
+        assertTrue(p.switchAdventurerBranch(120, 110, false, 0, 0).contains("18 秒"));
+        verify(p, never()).cancelAllBuffs(anyBoolean());
+        when(p.getJobSwitchQuietSeconds()).thenReturn(0);
+        when(p.getMap().allowsTeleportRock()).thenReturn(false);
+        assertEquals(3, AdventurerJobSwitch.status(p));
+        when(p.getMap().allowsTeleportRock()).thenReturn(true);
+        when(p.getMapId()).thenReturn(910000000);
+        assertEquals(3, AdventurerJobSwitch.status(p));
+        when(p.getMapId()).thenReturn(100000000);
+        assertEquals(0, AdventurerJobSwitch.status(p));
+        when(p.getInventory(InventoryType.EQUIPPED).list()).thenReturn(List.of(mock(Item.class)));
+        assertEquals(4, AdventurerJobSwitch.status(p));
+    }
+
+    @Test void existingSkillCooldownDoesNotBlockQuietCharacter() {
+        Character p = eligible();
+        when(p.getAllCooldowns()).thenReturn(List.of(mock(net.server.PlayerCoolDownValueHolder.class)));
+        assertEquals(0, AdventurerJobSwitch.status(p));
+        assertNull(AdventurerJobSwitch.rejection(p, 120));
+        when(p.getJobSwitchQuietSeconds()).thenReturn(1);
+        assertEquals(1, AdventurerJobSwitch.status(p));
+        assertNotNull(AdventurerJobSwitch.rejection(p, 120));
+    }
+
     private Character eligible() {
         Character p = mock(Character.class, RETURNS_DEEP_STUBS);
         when(p.getJob()).thenReturn(Job.FIGHTER);
         when(p.getLevel()).thenReturn(30);
         when(p.isLoggedinWorld()).thenReturn(true);
         when(p.isAlive()).thenReturn(true);
-        when(p.getMap().isTown()).thenReturn(true);
+        when(p.getAllCooldowns()).thenReturn(List.of());
+        when(p.getMap().allowsTeleportRock()).thenReturn(true);
+        when(p.getMapId()).thenReturn(100000000);
         when(p.getMap().getEventInstance()).thenReturn(null);
         when(p.getEventInstance()).thenReturn(null);
         when(p.getTrade()).thenReturn(null);
@@ -115,12 +150,12 @@ class AdventurerJobSwitchTest {
         when(p.getLevel()).thenReturn(69);
         assertNull(AdventurerJobSwitch.rejection(p, 130));
         when(p.getLevel()).thenReturn(70);
-        assertNotNull(AdventurerJobSwitch.rejection(p, 130));
+        assertNull(AdventurerJobSwitch.rejection(p, 130));
         when(p.getLevel()).thenReturn(29);
         assertNotNull(AdventurerJobSwitch.rejection(p, 130));
         when(p.getLevel()).thenReturn(40);
         when(p.getMap().isTown()).thenReturn(false);
-        assertNotNull(AdventurerJobSwitch.rejection(p, 130));
+        assertNull(AdventurerJobSwitch.rejection(p, 130));
         when(p.getMap().isTown()).thenReturn(true);
         when(p.isChangingMaps()).thenReturn(true);
         assertNotNull(AdventurerJobSwitch.rejection(p, 130));

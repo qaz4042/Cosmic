@@ -567,6 +567,7 @@ public abstract class AbstractDealDamageHandler extends AbstractPacketHandler {
     }
 
     protected AttackInfo parseDamage(InPacket p, Character chr, boolean ranged, boolean magic) {
+        chr.markJobSwitchActivity();
         //2C 00 00 01 91 A1 12 00 A5 57 62 FC E2 75 99 10 00 47 80 01 04 01 C6 CC 02 DD FF 5F 00
         AttackInfo ret = new AttackInfo();
         p.readByte();

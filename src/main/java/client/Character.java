@@ -355,6 +355,11 @@ public class Character extends AbstractCharacterObject {
     private long loginTime;
     private boolean chasing = false;
 
+    private final server.JobSwitchQuietPeriod jobSwitchQuietPeriod = new server.JobSwitchQuietPeriod();
+
+    public void markJobSwitchActivity() { jobSwitchQuietPeriod.touch(); }
+    public int getJobSwitchQuietSeconds() { return jobSwitchQuietPeriod.remainingSeconds(); }
+
     private Character() {
         super.setListener(new AbstractCharacterListener() {
             @Override
@@ -1035,7 +1040,7 @@ public class Character extends AbstractCharacterObject {
         this.ci = type;
     }
 
-    public void setMasteries(int jobId) {
+    private int[] defaultMasterySkills(int jobId) {
         int[] skills = new int[4];
         for (int i = 0; i > skills.length; i++) {
             skills[i] = 0; //that initialization meng
@@ -1101,7 +1106,11 @@ public class Character extends AbstractCharacterObject {
             skills[0] = Evan.BLESSING_OF_THE_ONYX;
             skills[1] = Evan.BLAZE;
         }
-        for (Integer skillId : skills) {
+        return skills;
+    }
+
+    public void setMasteries(int jobId) {
+        for (Integer skillId : defaultMasterySkills(jobId)) {
             if (skillId != 0) {
                 Skill skill = SkillFactory.getSkill(skillId);
                 final int skilllevel = getSkillLevel(skill);
@@ -1143,7 +1152,7 @@ public class Character extends AbstractCharacterObject {
         String rejection = server.AdventurerJobSwitch.rejection(this, target);
         if (rejection != null) return rejection;
         if (swapStats && !server.AdventurerJobSwitch.canSwapStats(expectedJob, target))
-            return "仅拳手与火枪手互换时可选择力量／敏捷互换。";
+            return "仅拳手系与火枪手系互换时可选择力量／敏捷互换。";
         if (swapStats && (getStr() != expectedStr || getDex() != expectedDex))
             return "属性已变化，请重新打开切换窗口确认。";
         Map<Integer, Integer> levels = new LinkedHashMap<>();
@@ -1155,7 +1164,16 @@ public class Character extends AbstractCharacterObject {
             return e.getMessage();
         }
 
+        try (var equipment = server.JobSwitchEquipment.prepare(this)) {
         cancelAllBuffs(false);
+        if (berserkSchedule != null) { berserkSchedule.cancel(false); berserkSchedule = null; }
+        berserk = false;
+        for (Summon summon : new ArrayList<>(summons.values())) {
+            getMap().broadcastMessage(PacketCreator.removeSummon(summon, true), summon.getPosition());
+            getMap().removeMapObject(summon);
+            removeVisibleMapObject(summon);
+        }
+        summons.clear();
         Job previousJob = job;
         int previousSp = getRemainingSp();
         int previousStr = getStr(), previousDex = getDex();
@@ -1164,7 +1182,7 @@ public class Character extends AbstractCharacterObject {
         SkillMacro[] previousMacros = skillMacros.clone();
         // Zero entries are saved together with the job and SP by the existing DB transaction.
         skills.replaceAll((skill, entry) -> server.AdventurerJobSwitch.branchSkill(skill.getId())
-                ? new SkillEntry((byte) 0, 0, -1) : entry);
+                ? new SkillEntry((byte) 0, entry.masterlevel, entry.expiration) : entry);
         keymap.entrySet().removeIf(entry -> entry.getValue().getType() == 1
                 && server.AdventurerJobSwitch.branchSkill(entry.getValue().getAction()));
         for (int i = 0; i < skillMacros.length; i++) {
@@ -1174,6 +1192,15 @@ public class Character extends AbstractCharacterObject {
                     || server.AdventurerJobSwitch.branchSkill(macro.getSkill3())))
                 skillMacros[i] = new SkillMacro(0, 0, 0, "", 0, i);
         }
+        // Preserve previously earned mastery caps per branch; only normal advancement defaults are seeded.
+        for (int skillId : defaultMasterySkills(target)) {
+            if (skillId == 0) continue;
+            Skill skill = SkillFactory.getSkill(skillId);
+            SkillEntry old = skills.get(skill);
+            if (old == null || old.masterlevel < 10)
+                skills.put(skill, new SkillEntry((byte) 0, 10, -1));
+        }
+        equipment.move();
         updatePartySearchAvailability(false);
         job = Job.getById(target);
         remainingSp[0] = refunded;
@@ -1197,11 +1224,18 @@ public class Character extends AbstractCharacterObject {
             Server.getInstance().updateCharacterEntry(this);
             return "保存失败，职业与技能点已还原，请稍后重试（增益状态已解除）。";
         }
+        equipment.commit(this);
+        markJobSwitchActivity();
         updatePartySearchAvailability(true);
         previousSkills.forEach((skill, entry) -> {
             if (server.AdventurerJobSwitch.branchSkill(skill.getId()))
-                sendPacket(PacketCreator.updateSkill(skill.getId(), 0, 0, -1));
+                sendPacket(PacketCreator.updateSkill(skill.getId(), 0, skills.get(skill).masterlevel, skills.get(skill).expiration));
         });
+        for (var entry : skills.entrySet()) {
+            if (!previousSkills.containsKey(entry.getKey()) && server.AdventurerJobSwitch.branchSkill(entry.getKey().getId()))
+                sendPacket(PacketCreator.updateSkill(entry.getKey().getId(), 0, entry.getValue().masterlevel, entry.getValue().expiration));
+        }
+        energybar = 0;
         sendKeymap();
         sendMacros();
         equipChanged();
@@ -1214,7 +1248,10 @@ public class Character extends AbstractCharacterObject {
         broadcastChangeJob();
         log.info("Adventurer branch switch chr {}: {} -> {}, remaining SP {} -> {}, swap STR/DEX {}",
                 id, previousJob.getId(), target, previousSp, refunded, swapStats);
-        return "切换成功，二转技能点已退回。请重新分配技能并检查快捷键；建议重新登录后再开始练级。";
+        return "切换成功，保持原转数，分支技能点已退回。请重新分配技能并检查快捷键；建议重新登录后再开始练级。";
+        } catch (IllegalArgumentException e) {
+            return e.getMessage();
+        }
     }
 
     public synchronized void changeJob(Job newJob) {
@@ -1818,6 +1855,7 @@ public class Character extends AbstractCharacterObject {
             return;
         }
 
+        markJobSwitchActivity();
         this.mapTransitioning.set(true);
 
         this.unregisterChairBuff();
@@ -8968,6 +9006,7 @@ public class Character extends AbstractCharacterObject {
     }
 
     private void hpChangeAction(int oldHp) {
+        if (oldHp > getHp()) markJobSwitchActivity();
         boolean playerDied = false;
         if (hp <= 0) {
             if (oldHp > hp) {

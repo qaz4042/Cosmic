@@ -129,7 +129,8 @@ class ShopInventoryActionsTest {
                     new ShopInventoryActions.Sale((byte) 2, (short) 8, 2000007, (short) 5),
                     new ShopInventoryActions.Sale((byte) 5, (short) 1, 5450000, (short) 1)));
             verify(shop).sell(client, InventoryType.USE, (short) 5, (short) 5);
-            verify(shop, times(1)).sell(any(), any(), anyShort(), anyShort());
+            verify(shop).sell(client, InventoryType.USE, (short) 3, (short) 5);
+            verify(shop, times(2)).sell(any(), any(), anyShort(), anyShort());
     }
 
     @Test
@@ -158,6 +159,27 @@ class ShopInventoryActionsTest {
         assertNull(use.getItem((short) 1));
         assertSame(protectedItem, use.getItem((short) 2));
         verify(chr, times(1)).gainMeso(250, false);
+    }
+
+    @Test
+    void zeroPriceArrowStacksAreRemovedButLockedArrowsStayAndNoMesosArePaid() throws Exception {
+        var constructor = Shop.class.getDeclaredConstructor(int.class, int.class);
+        constructor.setAccessible(true);
+        Shop shop = constructor.newInstance(1338, 9090000);
+        when(chr.getShop()).thenReturn(shop);
+        item(2061000, 1, 2000);
+        Item locked = item(2061000, 2, 2000);
+        locked.setFlag(ItemConstants.SELL_LOCK);
+        item(2060000, 3, 992);
+        when(chr.getMeso()).thenReturn(Integer.MAX_VALUE);
+        ShopInventoryActions.sellAll(client, 9090000, List.of(
+                new ShopInventoryActions.Sale((byte) 2, (short) 1, 2061000, (short) 2000),
+                new ShopInventoryActions.Sale((byte) 2, (short) 2, 2061000, (short) 2000),
+                new ShopInventoryActions.Sale((byte) 2, (short) 3, 2060000, (short) 992)));
+        assertNull(use.getItem((short) 1));
+        assertNull(use.getItem((short) 3));
+        assertSame(locked, use.getItem((short) 2));
+        verify(chr, never()).gainMeso(anyInt(), anyBoolean());
     }
 
     @Test

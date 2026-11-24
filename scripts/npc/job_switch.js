@@ -19,17 +19,17 @@ var groups = [
 function start() {
     originalJob = cm.getJobId();
     for (var i = 0; i < groups.length; i++) {
-        if (groups[i][0].indexOf(originalJob) >= 0) {
+        if (groups[i][0].indexOf(Math.floor(originalJob / 10) * 10) >= 0) {
             jobs = groups[i][0]; names = groups[i][1]; break;
         }
     }
-    if (jobs.length == 0 || cm.getLevel() < 30 || cm.getLevel() >= 70) {
-        cm.sendOk("仅开放 30–69 级冒险家同一大类内的二转分支互换。");
+    if (jobs.length == 0 || originalJob % 10 > 2 || cm.getLevel() < 30) {
+        cm.sendOk("仅开放 30 级以上冒险家同一大类内的分支互换，保持当前转数。");
         cm.dispose(); return;
     }
-    var text = "冒险家二转职业切换（30–69级）\r\n请先在普通城镇卸下全部装备。\r\n保留一转技能、等级和基础血蓝；清除二转技能并退还实际投入的 SP，不发转职奖励。解除自身全部增益，清理旧二转技能快捷键、相关宏与挂机配置。\r\n";
+    var text = "#e职业分支切换#n\r\n脱战 30 秒后可用，保持当前转数。\r\n确认时自动卸下全部装备，请留足装备栏空位。\r\n#b请选择目标分支：#k\r\n";
     for (var j = 0; j < jobs.length; j++)
-        if (jobs[j] != originalJob) text += "#L" + j + "#" + names[j] + "#l\r\n";
+        if (jobs[j] != Math.floor(originalJob / 10) * 10) text += "#L" + j + "#" + names[j] + "#l\r\n";
     cm.sendSimple(text);
 }
 
@@ -41,16 +41,16 @@ function confirm() {
         ? "力量 " + expectedStr + " → " + expectedDex + "，敏捷 " + expectedDex + " → " + expectedStr
         : "保留当前全部属性加点";
     cm.sendYesNo("确认切换为 #b" + targetName + "#k？\r\n" + stats
-        + "。\r\n原二转技能加点将清除并退还 SP，不保留各分支独立加点方案。历史升级血蓝不重算。请自行准备目标武器及箭矢／飞镖／子弹，切换后重新加点并检查快捷键。");
+        + "。\r\n#r全部装备（含现金装备）将自动移入装备栏。#k\r\n分支技能重置并退还 SP，一转技能和基础血蓝保留。\r\n不发转职奖励；请重新加点并检查快捷键。\r\n是否继续？");
 }
 
 function action(mode, type, selection) {
     if (mode != 1) { cm.dispose(); return; }
     if (status == 0) {
         if (selection < 0 || selection >= jobs.length || selection != Math.floor(selection)
-                || jobs[selection] == originalJob) { cm.dispose(); return; }
-        target = jobs[selection]; targetName = names[selection];
-        if (originalJob == 510 || originalJob == 520) {
+                || jobs[selection] == Math.floor(originalJob / 10) * 10) { cm.dispose(); return; }
+        target = jobs[selection] + originalJob % 10; targetName = names[selection] + "系（" + (originalJob % 10 + 2) + "转）";
+        if (Math.floor(originalJob / 100) == 5) {
             status = 1;
             cm.sendSimple("拳手主力量，火枪手主敏捷。请选择属性处理方式：\r\n#L0#保留当前力量、敏捷#l\r\n#L1#互换力量与敏捷（总点数、智力、运气及未用 AP 不变）#l");
         } else confirm();

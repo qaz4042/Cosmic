@@ -67,6 +67,7 @@ public final class TakeDamageHandler extends AbstractPacketHandler {
         List<Character> banishPlayers = new ArrayList<>();
 
         Character chr = c.getPlayer();
+        chr.markJobSwitchActivity();
         p.readInt();
         byte damagefrom = p.readByte();
         p.readByte(); //Element
