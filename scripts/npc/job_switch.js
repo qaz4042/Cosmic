@@ -24,24 +24,21 @@ function start() {
         }
     }
     if (jobs.length == 0 || originalJob % 10 > 2 || cm.getLevel() < 30) {
-        cm.sendOk("仅开放 30 级以上冒险家同一大类内的分支互换，保持当前转数。");
+        cm.sendOk("[JobSwitch]" + "仅开放 30 级以上冒险家同一大类内的分支互换，保持当前转数。");
         cm.dispose(); return;
     }
-    var text = "#e职业分支切换#n\r\n脱战 30 秒后可用，保持当前转数。\r\n确认时自动卸下全部装备，请留足装备栏空位。\r\n#b请选择目标分支：#k\r\n";
+    var text = "切换职业\r\n";
     for (var j = 0; j < jobs.length; j++)
         if (jobs[j] != Math.floor(originalJob / 10) * 10) text += "#L" + j + "#" + names[j] + "#l\r\n";
-    cm.sendSimple(text);
+    cm.sendSimple("[JobSwitch]" + text);
 }
 
 function confirm() {
     expectedStr = cm.getPlayer().getStr();
     expectedDex = cm.getPlayer().getDex();
     status = 2;
-    var stats = swapStats
-        ? "力量 " + expectedStr + " → " + expectedDex + "，敏捷 " + expectedDex + " → " + expectedStr
-        : "保留当前全部属性加点";
-    cm.sendYesNo("确认切换为 #b" + targetName + "#k？\r\n" + stats
-        + "。\r\n#r全部装备（含现金装备）将自动移入装备栏。#k\r\n分支技能重置并退还 SP，一转技能和基础血蓝保留。\r\n不发转职奖励；请重新加点并检查快捷键。\r\n是否继续？");
+    cm.sendYesNo("[JobSwitch]切换为 " + targetName + "？\r\n自动卸装 · 返还技能点"
+        + (swapStats ? "\r\n力量 " + expectedStr + " → " + expectedDex + "，敏捷 " + expectedDex + " → " + expectedStr : ""));
 }
 
 function action(mode, type, selection) {
@@ -52,7 +49,7 @@ function action(mode, type, selection) {
         target = jobs[selection] + originalJob % 10; targetName = names[selection] + "系（" + (originalJob % 10 + 2) + "转）";
         if (Math.floor(originalJob / 100) == 5) {
             status = 1;
-            cm.sendSimple("拳手主力量，火枪手主敏捷。请选择属性处理方式：\r\n#L0#保留当前力量、敏捷#l\r\n#L1#互换力量与敏捷（总点数、智力、运气及未用 AP 不变）#l");
+            cm.sendSimple("[JobSwitch]" + "属性处理\r\n#L0#保留属性#l\r\n#L1#力量敏捷互换#l");
         } else confirm();
     } else if (status == 1) {
         if (selection !== 0 && selection !== 1) { cm.dispose(); return; }
@@ -61,7 +58,7 @@ function action(mode, type, selection) {
     } else if (status == 2) {
         status = 3;
         var result = cm.getPlayer().switchAdventurerBranch(target, originalJob, swapStats, expectedStr, expectedDex);
-        cm.sendOk(result);
+        cm.sendOk("[JobSwitch]" + (result.indexOf("切换成功") == 0 ? "切换成功" : result));
         cm.dispose();
     }
 }

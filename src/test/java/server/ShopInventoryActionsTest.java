@@ -196,4 +196,33 @@ class ShopInventoryActionsTest {
         }
         verify(chr, never()).gainMeso(anyInt(), anyBoolean());
     }
+    @Test
+    void rechargeablePricesArePerCustomerAndCachedStockStaysUnchanged() throws Exception {
+        var ctor = Shop.class.getDeclaredConstructor(int.class, int.class);
+        ctor.setAccessible(true);
+        Shop cached = ctor.newInstance(1, 2020001);
+        var field = Shop.class.getDeclaredField("items");
+        field.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        List<ShopItem> stock = (List<ShopItem>) field.get(cached);
+        stock.add(new ShopItem((short) 1000, 2330001, 0, 0));
+        stock.add(new ShopItem((short) 1, 2330000, 600, 0));
+        stock.add(new ShopItem((short) 1, 2070001, 0, 3));
+        when(ii.getUnitPrice(2330001)).thenReturn(0.3);
+        when(ii.getSlotMax(client, 2330001)).thenReturn((short) 1001, (short) 1200);
+        cached.sendShop(client);
+        cached.sendShop(client);
+        var sessions = org.mockito.ArgumentCaptor.forClass(Shop.class);
+        verify(chr, times(2)).setShop(sessions.capture());
+        @SuppressWarnings("unchecked")
+        List<ShopItem> first = (List<ShopItem>) field.get(sessions.getAllValues().get(0));
+        @SuppressWarnings("unchecked")
+        List<ShopItem> second = (List<ShopItem>) field.get(sessions.getAllValues().get(1));
+        assertEquals(301, first.get(0).getPrice());
+        assertEquals(360, second.get(0).getPrice());
+        assertEquals(600, first.get(1).getPrice());
+        assertEquals(0, first.get(2).getPrice());
+        assertEquals(3, first.get(2).getPitch());
+        assertEquals(0, stock.get(0).getPrice());
+    }
 }

@@ -79,8 +79,22 @@ public class Shop {
     }
 
     public void sendShop(Client c) {
-        c.getPlayer().setShop(this);
-        c.sendPacket(PacketCreator.getNPCShop(c, getNpcId(), items));
+        // Resolve refill-only stock per customer: mastery can increase stack capacity.
+        // Keep the cached shop unchanged and use identical prices for display and buy.
+        Shop session = new Shop(id, npcId);
+        ItemInformationProvider ii = ItemInformationProvider.getInstance();
+        for (ShopItem item : items) {
+            int price = item.getPrice();
+            if (price == 0 && item.getPitch() == 0 && ItemConstants.isRechargeable(item.getItemId())) {
+                double fullStackPrice = Math.ceil(ii.getUnitPrice(item.getItemId()) * ii.getSlotMax(c, item.getItemId()));
+                if (Double.isFinite(fullStackPrice) && fullStackPrice > 0 && fullStackPrice <= Integer.MAX_VALUE) {
+                    price = (int) fullStackPrice;
+                }
+            }
+            session.addItem(new ShopItem(item.getBuyable(), item.getItemId(), price, item.getPitch()));
+        }
+        c.getPlayer().setShop(session);
+        c.sendPacket(PacketCreator.getNPCShop(c, getNpcId(), session.items));
     }
 
     public void buy(Client c, short slot, int itemId, short quantity) {
@@ -94,6 +108,9 @@ public class Shop {
             return;
         }
         ItemInformationProvider ii = ItemInformationProvider.getInstance();
+        if (ItemConstants.isRechargeable(itemId)) {
+            quantity = 1; // Purchase one full stack, regardless of the client quantity.
+        }
         if (item.getPrice() > 0) {
             int amount = (int) Math.min((float) item.getPrice() * quantity, Integer.MAX_VALUE);
             if (c.getPlayer().getMeso() >= amount) {

@@ -38,12 +38,8 @@ public final class AdventurerJobSwitch {
     public static int status(Character player) {
         if (!branch(player.getJob().getId()) || player.getLevel() < 30) return 2;
         if (!player.isLoggedinWorld() || !player.isAlive() || player.isChangingMaps()
-                || player.getMap() == null || player.getMapId() < 0 || player.getMapId() >= 900000000
+                || player.getMap() == null
                 || player.getEventInstance() != null || player.getMap().getEventInstance() != null
-                || server.maps.MiniDungeonInfo.isDungeonMap(player.getMapId())
-                || server.maps.FieldLimit.CANNOTMIGRATE.check(player.getMap().getFieldLimit())
-                || !player.getMap().allowsTeleportRock()
-                || player.getMapId() == constants.id.MapId.GM_MAP || player.getMapId() == constants.id.MapId.JAIL
                 || player.getTrade() != null || player.getShop() != null
                 || player.getPlayerShop() != null || player.getMiniGame() != null
                 || player.getHiredMerchant() != null || player.getCashShop().isOpened()) return 3;
@@ -59,7 +55,7 @@ public final class AdventurerJobSwitch {
         return switch (status(player)) {
             case 1 -> "请先脱战 30 秒，还需 " + player.getJobSwitchQuietSeconds() + " 秒。";
             case 2 -> "仅开放 30 级以上冒险家分支互换（保持当前转数）。";
-            case 3 -> "当前状态或活动／副本地图不能切换职业。";
+            case 3 -> "请先结束交易或活动。";
             case 4 -> "装备栏空间不足，无法自动卸下全部装备，请先整理背包。";
             default -> null;
         };

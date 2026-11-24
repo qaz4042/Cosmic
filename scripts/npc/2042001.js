@@ -21,7 +21,19 @@ var cpqMaxLvl = 50;
 var cpqMinAmt = 2;
 var cpqMaxAmt = 6;
 
+// Office navigation is available even when the carnival is disabled.
+var officeMenu = false;
+
 function start() {
+    if (cm.getMapId() == cpqMap) {
+        officeMenu = true;
+        cm.sendSimple("欢迎来到怪物嘉年华。请选择：\r\n#L0#参加嘉年华#l\r\n#L1#离开嘉年华，返回原来的地图#l");
+        return;
+    }
+    startCarnival();
+}
+
+function startCarnival() {
     status = -1;
 
     const YamlConfig = Java.type('config.YamlConfig');
@@ -35,6 +47,24 @@ function start() {
 }
 
 function action(mode, type, selection) {
+    if (officeMenu) {
+        officeMenu = false;
+        if (mode != 1 || cm.getMapId() != cpqMap) {
+            cm.dispose();
+            return;
+        }
+        if (selection == 1) {
+            // Same destination policy as portal/mc_out.js; no arbitrary warp input.
+            var returnMap = cm.getPlayer().getSavedLocation("MONSTER_CARNIVAL");
+            if (returnMap < 0 || returnMap == cpqMap) returnMap = 102000000;
+            cm.dispose();
+            cm.warp(returnMap, 0);
+            return;
+        }
+        if (selection == 0) startCarnival();
+        else cm.dispose();
+        return;
+    }
     if (mode == -1) {
         cm.dispose();
     } else {

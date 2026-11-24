@@ -102,10 +102,10 @@ class AdventurerJobSwitchTest {
         verify(p, never()).cancelAllBuffs(anyBoolean());
         when(p.getJobSwitchQuietSeconds()).thenReturn(0);
         when(p.getMap().allowsTeleportRock()).thenReturn(false);
-        assertEquals(3, AdventurerJobSwitch.status(p));
+        assertEquals(0, AdventurerJobSwitch.status(p));
         when(p.getMap().allowsTeleportRock()).thenReturn(true);
         when(p.getMapId()).thenReturn(910000000);
-        assertEquals(3, AdventurerJobSwitch.status(p));
+        assertEquals(0, AdventurerJobSwitch.status(p));
         when(p.getMapId()).thenReturn(100000000);
         assertEquals(0, AdventurerJobSwitch.status(p));
         when(p.getInventory(InventoryType.EQUIPPED).list()).thenReturn(List.of(mock(Item.class)));

@@ -36,7 +36,7 @@ class JobSwitchDialogTest extends AbstractScriptManager {
             script.invokeFunction("action", 1, 0, 1);
             script.invokeFunction("action", 1, 0, swap ? 1 : 0);
             verify(player, never()).switchAdventurerBranch(anyInt(), anyInt(), anyBoolean(), anyInt(), anyInt());
-            verify(cm).sendYesNo(contains(swap ? "力量 300 → 40" : "保留当前全部属性加点"));
+            verify(cm).sendYesNo(contains(swap ? "力量 300 → 40" : "自动卸装 · 返还技能点"));
             script.invokeFunction("action", 1, 0, 0);
             script.invokeFunction("action", 1, 0, 0);
             verify(player, times(1)).switchAdventurerBranch(520, 510, swap, 300, 40);
