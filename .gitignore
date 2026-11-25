@@ -24,3 +24,13 @@ database/docker-pg-db-data
 
 # macOS files
 .DS_Store
+
+# Local inputs and backups for historical incremental deployments
+/tools/ammo-shop/Shop.remote.java
+/tools/ammo-shop/source/
+/tools/job-switch/compact-deploy/*.java
+/tools/job-switch/compact-deploy/*.js
+/tools/job-switch/deploy/remote-sources.tar.gz
+/tools/job-switch/deploy/source/
+/tools/job-switch/unequip-deploy/original-sources.tar.gz
+/tools/job-switch/unequip-deploy/source/
